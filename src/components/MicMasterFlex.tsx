@@ -213,27 +213,42 @@ const MicMasterFlex = () => {
                     >
                         <Hand size={20} />
                     </button>
-                    <button
-                        onClick={() => setMode('add')}
-                        className={`p-2 bg-white rounded-full shadow hover:bg-gray-100 ${mode === 'add' ? 'ring-2 ring-blue-500' : ''}`}
-                        title="Add Microphone"
-                    >
-                        <PlusCircle size={20} />
-                    </button>
-                    <button
-                        onClick={() => setMode('edit')}
-                        className={`p-2 bg-white rounded-full shadow hover:bg-gray-100 ${mode === 'edit' ? 'ring-2 ring-blue-500' : ''}`}
-                        title="Edit Microphone"
-                    >
-                        <Edit2 size={20} />
-                    </button>
-                    <button
-                        onClick={() => setMode('delete')}
-                        className={`p-2 bg-white rounded-full shadow hover:bg-gray-100 ${mode === 'delete' ? 'ring-2 ring-blue-500' : ''}`}
-                        title="Delete Microphone"
-                    >
-                        <Trash2 size={20} />
-                    </button>
+                    <div className="relative group">
+                        <button
+                            onClick={() => setMode('add')}
+                            className={`p-2 bg-white rounded-full shadow hover:bg-gray-100 ${mode === 'add' ? 'ring-2 ring-blue-500' : ''}`}
+                            title="Add Microphone"
+                        >
+                            <PlusCircle size={20} />
+                        </button>
+                        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-max bg-black text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            Add Microphone
+                        </div>
+                    </div>
+                    <div className="relative group">
+                        <button
+                            onClick={() => setMode('edit')}
+                            className={`p-2 bg-white rounded-full shadow hover:bg-gray-100 ${mode === 'edit' ? 'ring-2 ring-blue-500' : ''}`}
+                            title="Edit Microphone"
+                        >
+                            <Edit2 size={20} />
+                        </button>
+                        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-max bg-black text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            Edit Microphone
+                        </div>
+                    </div>
+                    <div className="relative group">
+                        <button
+                            onClick={() => setMode('delete')}
+                            className={`p-2 bg-white rounded-full shadow hover:bg-gray-100 ${mode === 'delete' ? 'ring-2 ring-blue-500' : ''}`}
+                            title="Delete Microphone"
+                        >
+                            <Trash2 size={20} />
+                        </button>
+                        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-max bg-black text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            Delete Microphone
+                        </div>
+                    </div>
                     <button
                         onClick={() => setZoom(z => Math.min(z * 1.2, 200))}
                         className="p-2 bg-white rounded-full shadow hover:bg-gray-100"
