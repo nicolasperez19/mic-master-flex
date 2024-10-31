@@ -94,3 +94,8 @@ If you'd like to cite this project, please use this BibTex:
   year={2024}
 }
 ```
+## Acknowledgments
+
+Big thanks to all the amazing contributors who helped make this project possible:
+
+- [@nicolasperez19](https://github.com/nicolasperez19) - Project creator and primary developer.
