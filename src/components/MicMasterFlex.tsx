@@ -26,6 +26,7 @@ const MicMasterFlex = () => {
     const [showEditDialog, setShowEditDialog] = useState(false);
     const [editX, setEditX] = useState('');
     const [editY, setEditY] = useState('');
+    const [unit, setUnit] = useState('metric'); // P44ca
 
     const svgRef = useRef<SVGSVGElement>(null);
     const gridSize = 10; // 10x10 meters grid
@@ -176,9 +177,10 @@ const MicMasterFlex = () => {
 
     // Generate numpy array string
     const getNumpyArrayString = () => {
+        const unitComment = unit === 'metric' ? '# positions in meters' : '# positions in feet'; // Pda43
         return `np.array([
   ${microphones.map(mic => `[${mic.x.toFixed(4)}, ${mic.y.toFixed(4)}]`).join(',\n  ')}
-])`;
+]) ${unitComment}`;
     };
 
     // Copy array to clipboard
@@ -248,6 +250,19 @@ const MicMasterFlex = () => {
                     >
                         <ZoomOut size={20} />
                     </button>
+                </div>
+
+                <div className="absolute top-4 left-4 z-10"> {/* P44ca */}
+                    <label htmlFor="unit-select" className="mr-2">Units:</label>
+                    <select
+                        id="unit-select"
+                        value={unit}
+                        onChange={(e) => setUnit(e.target.value)}
+                        className="p-2 bg-white rounded shadow"
+                    >
+                        <option value="metric">Metric (meters)</option>
+                        <option value="imperial">Imperial (feet)</option>
+                    </select>
                 </div>
 
                 <svg
