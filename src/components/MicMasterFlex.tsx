@@ -1,18 +1,17 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Copy, ZoomIn, ZoomOut, PlusCircle, Trash2, Hand, Edit2 } from 'lucide-react';
-
-type Microphone = {
-    id: string;
-    x: number;
-    y: number;
-}
-
-type Point = {
-    x: number;
-    y: number;
-}
-
-type Mode = 'pan' | 'add' | 'delete' | 'edit';
+import {
+    gridToScreen,
+    screenToGrid,
+    handleMouseDown,
+    handleMouseMove,
+    handleMouseUp,
+    handleCoordinateUpdate,
+    generateGridLines,
+    getNumpyArrayString,
+    copyToClipboard,
+    getCursor
+} from '../utils/micLogic';
 
 const MicMasterFlex = () => {
     const [microphones, setMicrophones] = useState<Microphone[]>([]);
@@ -31,176 +30,32 @@ const MicMasterFlex = () => {
     const gridSize = 10; // 10x10 meters grid
     const gridDivisions = 20; // Grid lines every 0.5 meters
 
-    // Convert grid coordinates to screen coordinates
-    const gridToScreen = (point: Point): Point => ({
-        x: (point.x * zoom) + (window.innerWidth / 2) + pan.x,
-        y: (-point.y * zoom) + (window.innerHeight / 2) + pan.y,
-    });
-
-    // Convert screen coordinates to grid coordinates
-    const screenToGrid = (point: Point): Point => ({
-        x: ((point.x - (window.innerWidth / 2) - pan.x) / zoom),
-        y: -((point.y - (window.innerHeight / 2) - pan.y) / zoom),
-    });
-
-    // Handle mouse down on the grid
-    const handleMouseDown = (e: React.MouseEvent) => {
-        if (!svgRef.current) return;
-
-        const rect = svgRef.current.getBoundingClientRect();
-        const point = {
-            x: e.clientX - rect.left,
-            y: e.clientY - rect.top,
-        };
-
-        setDragStart(point);
-        setIsDragging(true);
-    };
-
-    // Handle mouse move
-    const handleMouseMove = (e: React.MouseEvent) => {
-        if (!svgRef.current || !isDragging || mode !== 'pan') return;
-
-        const rect = svgRef.current.getBoundingClientRect();
-        const point = {
-            x: e.clientX - rect.left,
-            y: e.clientY - rect.top,
-        };
-
-        if (dragStart) {
-            const dx = point.x - dragStart.x;
-            const dy = point.y - dragStart.y;
-            setPan(prev => ({ x: prev.x + dx, y: prev.y + dy }));
-            setDragStart(point);
-        }
-    };
-
-    // Handle mouse up
-    const handleMouseUp = (e: React.MouseEvent) => {
-        if (!isDragging || !svgRef.current) return;
-
-        const rect = svgRef.current.getBoundingClientRect();
-        const point = {
-            x: e.clientX - rect.left,
-            y: e.clientY - rect.top,
-        };
-
-        const gridPoint = screenToGrid(point);
-
-        if (Math.abs(point.x - dragStart!.x) < 5 && Math.abs(point.y - dragStart!.y) < 5) {
-            if (mode === 'add') {
-                // Add new microphone at exact position
-                const newMic: Microphone = {
-                    id: `mic-${Date.now()}`,
-                    x: gridPoint.x,
-                    y: gridPoint.y,
-                };
-                setMicrophones([...microphones, newMic]);
-            } else if (mode === 'delete' && hoveredMic) {
-                // Delete microphone
-                setMicrophones(mics => mics.filter(m => m.id !== hoveredMic.id));
-                setHoveredMic(null);
-            } else if (mode === 'edit' && hoveredMic) {
-                // Open edit dialog
-                setSelectedMic(hoveredMic);
-                setEditX(hoveredMic.x.toString());
-                setEditY(hoveredMic.y.toString());
-                setShowEditDialog(true);
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            switch (e.key) {
+                case '1':
+                    setMode('pan');
+                    break;
+                case '2':
+                    setMode('add');
+                    break;
+                case '3':
+                    setMode('edit');
+                    break;
+                case '4':
+                    setMode('delete');
+                    break;
+                default:
+                    break;
             }
-        }
+        };
 
-        setIsDragging(false);
-        setDragStart(null);
-    };
+        window.addEventListener('keydown', handleKeyDown);
 
-    // Handle coordinate update
-    const handleCoordinateUpdate = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!selectedMic) return;
-
-        const x = parseFloat(editX);
-        const y = parseFloat(editY);
-
-        if (isNaN(x) || isNaN(y)) return;
-
-        setMicrophones(mics =>
-            mics.map(mic =>
-                mic.id === selectedMic.id ? { ...mic, x, y } : mic
-            )
-        );
-        setShowEditDialog(false);
-        setSelectedMic(null);
-    };
-
-    // Generate grid lines
-    const generateGridLines = () => {
-        const lines = [];
-        const step = gridSize / gridDivisions;
-
-        // Generate vertical lines
-        for (let x = -gridSize / 2; x <= gridSize / 2; x += step) {
-            const start = gridToScreen({ x, y: -gridSize / 2 });
-            const end = gridToScreen({ x, y: gridSize / 2 });
-            lines.push(
-                <line
-                    key={`v-${x}`}
-                    x1={start.x}
-                    y1={start.y}
-                    x2={end.x}
-                    y2={end.y}
-                    stroke={x === 0 ? "#666" : "#ddd"}
-                    strokeWidth={x === 0 ? 2 : 1}
-                />
-            );
-        }
-
-        // Generate horizontal lines
-        for (let y = -gridSize / 2; y <= gridSize / 2; y += step) {
-            const start = gridToScreen({ x: -gridSize / 2, y });
-            const end = gridToScreen({ x: gridSize / 2, y });
-            lines.push(
-                <line
-                    key={`h-${y}`}
-                    x1={start.x}
-                    y1={start.y}
-                    x2={end.x}
-                    y2={end.y}
-                    stroke={y === 0 ? "#666" : "#ddd"}
-                    strokeWidth={y === 0 ? 2 : 1}
-                />
-            );
-        }
-
-        return lines;
-    };
-
-    // Generate numpy array string
-    const getNumpyArrayString = () => {
-        return `np.array([
-  ${microphones.map(mic => `[${mic.x.toFixed(4)}, ${mic.y.toFixed(4)}]`).join(',\n  ')}
-])`;
-    };
-
-    // Copy array to clipboard
-    const copyToClipboard = () => {
-        navigator.clipboard.writeText(getNumpyArrayString());
-    };
-
-    // Get cursor style based on mode
-    const getCursor = () => {
-        switch (mode) {
-            case 'pan':
-                return 'grab';
-            case 'add':
-                return 'crosshair';
-            case 'delete':
-                return 'not-allowed';
-            case 'edit':
-                return 'pointer';
-            default:
-                return 'default';
-        }
-    };
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+        };
+    }, []);
 
     return (
         <>
@@ -253,16 +108,16 @@ const MicMasterFlex = () => {
                 <svg
                     ref={svgRef}
                     className="w-full h-full"
-                    style={{ cursor: getCursor() }}
-                    onMouseDown={handleMouseDown}
-                    onMouseMove={handleMouseMove}
-                    onMouseUp={handleMouseUp}
+                    style={{ cursor: getCursor(mode) }}
+                    onMouseDown={(e) => handleMouseDown(e, svgRef, setDragStart, setIsDragging)}
+                    onMouseMove={(e) => handleMouseMove(e, svgRef, isDragging, mode, dragStart, setPan, setDragStart)}
+                    onMouseUp={(e) => handleMouseUp(e, svgRef, isDragging, dragStart, mode, hoveredMic, setMicrophones, setHoveredMic, setSelectedMic, setEditX, setEditY, setShowEditDialog, zoom, pan, microphones)}
                     onMouseLeave={() => setIsDragging(false)}
                 >
                     <g>
-                        {generateGridLines()}
+                        {generateGridLines(gridSize, gridDivisions, zoom, pan)}
                         {microphones.map(mic => {
-                            const pos = gridToScreen(mic);
+                            const pos = gridToScreen(mic, zoom, pan);
                             return (
                                 <g key={mic.id}>
                                     <circle
@@ -286,8 +141,8 @@ const MicMasterFlex = () => {
                     <div
                         className="absolute bg-black text-white p-2 rounded text-sm pointer-events-none"
                         style={{
-                            left: gridToScreen(hoveredMic).x + 10,
-                            top: gridToScreen(hoveredMic).y - 30,
+                            left: gridToScreen(hoveredMic, zoom, pan).x + 10,
+                            top: gridToScreen(hoveredMic, zoom, pan).y - 30,
                         }}
                     >
                         ({hoveredMic.x.toFixed(4)}m, {hoveredMic.y.toFixed(4)}m)
@@ -297,7 +152,7 @@ const MicMasterFlex = () => {
                 {showEditDialog && (
                     <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-4 rounded-lg shadow-lg z-20">
                         <h3 className="text-lg font-semibold mb-4">Edit Microphone Position</h3>
-                        <form onSubmit={handleCoordinateUpdate} className="space-y-4">
+                        <form onSubmit={(e) => handleCoordinateUpdate(e, selectedMic, editX, editY, setMicrophones, setShowEditDialog, setSelectedMic)} className="space-y-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">X Coordinate (m)</label>
                                 <input
@@ -342,7 +197,7 @@ const MicMasterFlex = () => {
                 <div className="flex justify-between items-center mb-2">
                     <h2 className="text-lg font-semibold">Microphone Positions</h2>
                     <button
-                        onClick={copyToClipboard}
+                        onClick={() => copyToClipboard(getNumpyArrayString(microphones))}
                         className="flex items-center gap-2 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
                     >
                         <Copy size={16} />
@@ -350,7 +205,7 @@ const MicMasterFlex = () => {
                     </button>
                 </div>
                 <pre className="font-mono text-sm overflow-x-auto">
-                    {getNumpyArrayString()}
+                    {getNumpyArrayString(microphones)}
                 </pre>
             </div>
         </>
