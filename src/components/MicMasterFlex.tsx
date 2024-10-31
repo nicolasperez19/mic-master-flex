@@ -43,6 +43,15 @@ const MicMasterFlex = () => {
         y: -((point.y - (window.innerHeight / 2) - pan.y) / zoom),
     });
 
+    // Snap point to nearest grid intersection
+    const snapToGrid = (point: Point): Point => {
+        const step = gridSize / gridDivisions;
+        return {
+            x: Math.round(point.x / step) * step,
+            y: Math.round(point.y / step) * step,
+        };
+    };
+
     // Handle mouse down on the grid
     const handleMouseDown = (e: React.MouseEvent) => {
         if (!svgRef.current) return;
@@ -89,11 +98,11 @@ const MicMasterFlex = () => {
 
         if (Math.abs(point.x - dragStart!.x) < 5 && Math.abs(point.y - dragStart!.y) < 5) {
             if (mode === 'add') {
-                // Add new microphone at exact position
+                // Add new microphone at exact position or snapped to grid
                 const newMic: Microphone = {
                     id: `mic-${Date.now()}`,
-                    x: gridPoint.x,
-                    y: gridPoint.y,
+                    x: e.shiftKey ? snapToGrid(gridPoint).x : gridPoint.x,
+                    y: e.shiftKey ? snapToGrid(gridPoint).y : gridPoint.y,
                 };
                 setMicrophones([...microphones, newMic]);
             } else if (mode === 'delete' && hoveredMic) {

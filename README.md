@@ -94,3 +94,7 @@ If you'd like to cite this project, please use this BibTex:
   year={2024}
 }
 ```
+
+## 🖱️ Snap-to-Grid Functionality
+
+You can now snap a microphone point to the nearest grid intersection by using `Shift + Click` when adding a microphone point. This allows for more precise placement of microphones on the grid.
