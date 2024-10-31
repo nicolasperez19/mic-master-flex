@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Copy, ZoomIn, ZoomOut, PlusCircle, Trash2, Hand, Edit2 } from 'lucide-react';
 
 type Microphone = {
@@ -30,6 +30,33 @@ const MicMasterFlex = () => {
     const svgRef = useRef<SVGSVGElement>(null);
     const gridSize = 10; // 10x10 meters grid
     const gridDivisions = 20; // Grid lines every 0.5 meters
+
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            switch (e.key) {
+                case '1':
+                    setMode('pan');
+                    break;
+                case '2':
+                    setMode('add');
+                    break;
+                case '3':
+                    setMode('edit');
+                    break;
+                case '4':
+                    setMode('delete');
+                    break;
+                default:
+                    break;
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+        };
+    }, []);
 
     // Convert grid coordinates to screen coordinates
     const gridToScreen = (point: Point): Point => ({
