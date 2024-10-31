@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Copy, ZoomIn, ZoomOut, PlusCircle, Trash2, Hand, Edit2 } from 'lucide-react';
+import { Copy, ZoomIn, ZoomOut, PlusCircle, Trash2, Hand, Edit2, ArrowUp } from 'lucide-react';
 
 type Microphone = {
     id: string;
@@ -12,7 +12,7 @@ type Point = {
     y: number;
 }
 
-type Mode = 'pan' | 'add' | 'delete' | 'edit';
+type Mode = 'pan' | 'add' | 'delete' | 'edit' | 'adjust-bore-sight';
 
 const MicMasterFlex = () => {
     const [microphones, setMicrophones] = useState<Microphone[]>([]);
@@ -26,6 +26,7 @@ const MicMasterFlex = () => {
     const [showEditDialog, setShowEditDialog] = useState(false);
     const [editX, setEditX] = useState('');
     const [editY, setEditY] = useState('');
+    const [orientation, setOrientation] = useState(0); // Pac1c
 
     const svgRef = useRef<SVGSVGElement>(null);
     const gridSize = 10; // 10x10 meters grid
@@ -59,7 +60,7 @@ const MicMasterFlex = () => {
 
     // Handle mouse move
     const handleMouseMove = (e: React.MouseEvent) => {
-        if (!svgRef.current || !isDragging || mode !== 'pan') return;
+        if (!svgRef.current || !isDragging) return;
 
         const rect = svgRef.current.getBoundingClientRect();
         const point = {
@@ -70,8 +71,14 @@ const MicMasterFlex = () => {
         if (dragStart) {
             const dx = point.x - dragStart.x;
             const dy = point.y - dragStart.y;
-            setPan(prev => ({ x: prev.x + dx, y: prev.y + dy }));
-            setDragStart(point);
+
+            if (mode === 'pan') {
+                setPan(prev => ({ x: prev.x + dx, y: prev.y + dy }));
+                setDragStart(point);
+            } else if (mode === 'adjust-bore-sight') {
+                const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+                setOrientation(angle);
+            }
         }
     };
 
@@ -171,6 +178,27 @@ const MicMasterFlex = () => {
             );
         }
 
+        // Add bore-sight arrow
+        const center = gridToScreen({ x: 0, y: 0 });
+        const arrowLength = 50; // Length of the arrow in pixels
+        const arrowEnd = {
+            x: center.x + arrowLength * Math.cos(orientation * (Math.PI / 180)),
+            y: center.y + arrowLength * Math.sin(orientation * (Math.PI / 180)),
+        };
+
+        lines.push(
+            <line
+                key="bore-sight"
+                x1={center.x}
+                y1={center.y}
+                x2={arrowEnd.x}
+                y2={arrowEnd.y}
+                stroke="#ff0000"
+                strokeWidth={2}
+                markerEnd="url(#arrowhead)"
+            />
+        );
+
         return lines;
     };
 
@@ -197,6 +225,8 @@ const MicMasterFlex = () => {
                 return 'not-allowed';
             case 'edit':
                 return 'pointer';
+            case 'adjust-bore-sight':
+                return 'crosshair';
             default:
                 return 'default';
         }
@@ -235,6 +265,13 @@ const MicMasterFlex = () => {
                         <Trash2 size={20} />
                     </button>
                     <button
+                        onClick={() => setMode('adjust-bore-sight')}
+                        className={`p-2 bg-white rounded-full shadow hover:bg-gray-100 ${mode === 'adjust-bore-sight' ? 'ring-2 ring-blue-500' : ''}`}
+                        title="Adjust Bore-Sight"
+                    >
+                        <ArrowUp size={20} />
+                    </button>
+                    <button
                         onClick={() => setZoom(z => Math.min(z * 1.2, 200))}
                         className="p-2 bg-white rounded-full shadow hover:bg-gray-100"
                         title="Zoom In"
@@ -259,6 +296,11 @@ const MicMasterFlex = () => {
                     onMouseUp={handleMouseUp}
                     onMouseLeave={() => setIsDragging(false)}
                 >
+                    <defs>
+                        <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="0" refY="3.5" orient="auto">
+                            <polygon points="0 0, 10 3.5, 0 7" fill="#ff0000" />
+                        </marker>
+                    </defs>
                     <g>
                         {generateGridLines()}
                         {microphones.map(mic => {
